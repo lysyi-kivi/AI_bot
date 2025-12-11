@@ -1,0 +1,22 @@
+{
+  "mistralai/Magistral-Small-2506": {
+    "tokens": 1035,
+    "calls": 3,
+    "last": 1764861902.419352
+  },
+  "mistralai/Mistral-Large-Instruct-2411": {
+    "tokens": 0,
+    "calls": 0,
+    "last": null
+  },
+  "deepseek-ai/DeepSeek-R1-0528": {
+    "tokens": 7473,
+    "calls": 6,
+    "last": 1764862370.2484155
+  },
+  "meta-llama/Llama-3.3-70B-Instruct": {
+    "tokens": 0,
+    "calls": 0,
+    "last": null
+  }
+}
