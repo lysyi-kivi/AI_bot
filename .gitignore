@@ -3,9 +3,18 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pyo
+*.pyd
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
 
 # VS Code settings
 .vscode/
+.idea/
 
 # Virtual environment
 venv/
@@ -21,3 +30,39 @@ Thumbs.db
 # Environment variables
 *.env
 .envrc
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.coverage.*
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pytest
+.pytest_cache/
+
+# Ruff
+.ruff_cache/
+
+# IDE
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

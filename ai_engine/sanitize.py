@@ -2,11 +2,26 @@ import re
 from html import escape
 
 # Разрешённые теги в Telegram
-ALLOWED_TAGS = {"b", "strong", "i", "em", "u", "s", "strike", "del", "code", "pre", "a", "blockquote", "span"}
+ALLOWED_TAGS = {
+    "b",
+    "strong",
+    "i",
+    "em",
+    "u",
+    "s",
+    "strike",
+    "del",
+    "code",
+    "pre",
+    "a",
+    "blockquote",
+    "span",
+}
 ALLOWED_ATTRS = {"href", "class"}  # class разрешяем только для tg-spoiler
 
 # Простая регулярка для тегов
 TAG_RE = re.compile(r"</?([a-zA-Z0-9]+)([^>]*)>", re.IGNORECASE)
+
 
 def _clean_attrs(attrs: str) -> str:
     # Оставим только href и class, экранируем значения
@@ -23,6 +38,7 @@ def _clean_attrs(attrs: str) -> str:
             else:
                 out += f' {name}="{escape(val)}"'
     return out
+
 
 def sanitize_html(text: str) -> str:
     """

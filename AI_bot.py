@@ -14,7 +14,7 @@ load_dotenv(find_dotenv())
 
 from database.engine import create_db, session_maker, drop_db
 from handlers.user_private import user_private_router
-from ai_engine.main_engine import client
+from ai_engine.general_engine import client
 ai_bot = Bot(token=os.getenv('TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
  
 dp = Dispatcher()
@@ -48,3 +48,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

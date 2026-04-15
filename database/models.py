@@ -1,19 +1,21 @@
+from sqlalchemy import BigInteger, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import Text, String, ForeignKey, BigInteger
-
 
 
 class Base(DeclarativeBase):
     pass
 
-class User(Base): 
-    __tablename__= 'users'
+
+class User(Base):
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    messages: Mapped[list["Message"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Message(Base):

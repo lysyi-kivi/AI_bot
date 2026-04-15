@@ -2,7 +2,7 @@ from aiogram import F, types, Router
 from aiogram.filters import CommandStart
 
 from database.orm_query import add_message, get_last_messages, get_or_create_user
-from ai_engine.main_engine import ask_ai_engine
+from ai_engine.general_engine import ask_ai_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

@@ -1,11 +1,14 @@
-import os
+import logging
 import math
-from typing import List, Dict
+import os
 
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
+
 from .manager import ModelManager
-from .summarizer import summarize_messages
 from .sanitize import sanitize_html
+from .summarizer import summarize_messages
+
+logger = logging.getLogger("ai_bot.ai_engine")
 
 # клиент для основных запросов
 client = AsyncOpenAI(api_key=os.getenv("IOINTELLIGENCE_API_KEY"), base_url=os.getenv("AI_BASE_URL"))
@@ -14,7 +17,9 @@ client = AsyncOpenAI(api_key=os.getenv("IOINTELLIGENCE_API_KEY"), base_url=os.ge
 model_manager = ModelManager()
 
 # Параметры
-SUMMARY_THRESHOLD_CHARS = int(os.getenv("SUMMARY_THRESHOLD_CHARS", "8000"))  # если история больше — summarise
+SUMMARY_THRESHOLD_CHARS = int(
+    os.getenv("SUMMARY_THRESHOLD_CHARS", "8000")
+)  # если история больше — summarise
 TOKEN_ESTIMATE_DIV = 4  # примерно chars/4 -> tokens estimate
 
 
@@ -22,7 +27,7 @@ def estimate_tokens_from_chars(chars: int) -> int:
     return max(1, math.ceil(chars / TOKEN_ESTIMATE_DIV))
 
 
-async def ask_ai_engine(history: List[Dict], session=None) -> str:
+async def ask_ai_engine(history: list[dict], session=None) -> str:
     """
     history: list[{"role": "user"/"assistant"/"system", "content": "..."}]
     session: SQLAlchemy session (необязательно; можно использовать для записи summary)
@@ -31,7 +36,7 @@ async def ask_ai_engine(history: List[Dict], session=None) -> str:
         history = []
 
     # 0) подсчёт длины
-    total_chars = sum(len(m.get("content","")) for m in history)
+    total_chars = sum(len(m.get("content", "")) for m in history)
     # 1) если история очень длинная — сначала summarizer
     if total_chars > SUMMARY_THRESHOLD_CHARS:
         # берем старые сообщения: обычно первые элементы
@@ -41,9 +46,12 @@ async def ask_ai_engine(history: List[Dict], session=None) -> str:
         if prefix:
             summary_text = await summarize_messages(prefix)
             # заменяем prefix на одно сообщение summary
-            summary_msg = {"role": "system", "content": f"Резюме предыдущих сообщений: {summary_text}"}
+            summary_msg = {
+                "role": "system",
+                "content": f"Резюме предыдущих сообщений: {summary_text}",
+            }
             history = [summary_msg] + history[-20:]
-            total_chars = sum(len(m.get("content","")) for m in history)
+            total_chars = sum(len(m.get("content", "")) for m in history)
 
     # 2) получить кандидатов моделей
     candidates = model_manager.get_candidates(total_chars)
@@ -60,8 +68,10 @@ async def ask_ai_engine(history: List[Dict], session=None) -> str:
             # если модели осталось мало токенов — пропускаем
             rem = model_manager.tokens_remaining(model)
             if rem is not None and rem < est_tokens:
-                # если остаток меньше, пропустить модель
+                logger.debug(f"Model {model} имеет недостаточно токенов: {rem} < {est_tokens}")
                 continue
+
+            logger.info(f"Запрос к модели {model} (~{est_tokens} токенов)")
 
             completion = await client.chat.completions.create(
                 model=model,
@@ -73,22 +83,35 @@ async def ask_ai_engine(history: List[Dict], session=None) -> str:
             # получили ответ
             raw_text = (completion.choices[0].message.content or "").strip()
             if not raw_text:
+                logger.warning(f"Model {model} вернула пустой ответ")
                 last_exception = Exception("Empty response")
                 continue
 
             # 4) оценка потребл токенов и запись usage
             model_manager.report_usage(model, est_tokens + 50)  # +50 buffer
+            logger.info(f"Модель {model} успешно обработала запрос")
 
             # 5) sanitize for Telegram
             safe_text = sanitize_html(raw_text)
 
             return safe_text
 
-        except Exception as e:
-            print(f"Model {model} failed: {e}")
+        except RateLimitError as e:
+            logger.warning(f"Rate limit для модели {model}: {e}")
             last_exception = e
-            print(last_exception)
+            continue
+        except APIConnectionError as e:
+            logger.error(f"Ошибка соединения с моделью {model}: {e}")
+            last_exception = e
+            continue
+        except APIError as e:
+            logger.error(f"API ошибка модели {model}: {e}")
+            last_exception = e
+            continue
+        except Exception as e:
+            logger.warning(f"Model {model} failed: {e}", exc_info=True)
+            last_exception = e
             continue
 
     # если ни одна модель не помогла
-    return f"⚠️ Не удалось получить ответ от моделей. Попробуйте позже."
+    return "⚠️ Не удалось получить ответ от моделей. Попробуйте позже."
