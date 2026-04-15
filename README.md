@@ -143,14 +143,6 @@ docker-compose up --build
 pytest
 ```
 
-### Линтинг и форматирование
-
-```bash
-ruff check .
-ruff format .
-mypy .
-```
-
 ---
 
 ## Структура проекта
